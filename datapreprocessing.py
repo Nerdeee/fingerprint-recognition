@@ -17,30 +17,34 @@ male_dirname = "Male Fingers"
 female_dirname = "Female Fingers"
 
 def createDirectories():
-    male_pattern = re.compile(r'.*M.*')
-    female_pattern = re.compile(r'.*F.*')
+    # Updated patterns to match exact format
+    male_pattern = re.compile(r'.*__M_.*')
+    female_pattern = re.compile(r'.*__F_.*')
+    
     left_patterns = {
-        'thumb': re.compile(r'.*Left_thumb.*'),
-        'index': re.compile(r'.*Left_index.*'),
-        'middle': re.compile(r'.*Left_middle.*'),
-        'ring': re.compile(r'.*Left_ring.*'),
-        'pinkie': re.compile(r'.*Left_little.*'),
+        'thumb': re.compile(r'.*_Left_thumb_finger\.BMP$'),
+        'index': re.compile(r'.*_Left_index_finger\.BMP$'),
+        'middle': re.compile(r'.*_Left_middle_finger\.BMP$'),
+        'ring': re.compile(r'.*_Left_ring_finger\.BMP$'),
+        'pinkie': re.compile(r'.*_Left_little_finger\.BMP$'),
     }
     right_patterns = {
-        'thumb': re.compile(r'.*Right_thumb.*'),
-        'index': re.compile(r'.*Right_index.*'),
-        'middle': re.compile(r'.*Right_middle.*'),
-        'ring': re.compile(r'.*Right_ring.*'),
-        'pinkie': re.compile(r'.*Right_little.*'),
+        'thumb': re.compile(r'.*_Right_thumb_finger\.BMP$'),
+        'index': re.compile(r'.*_Right_index_finger\.BMP$'),
+        'middle': re.compile(r'.*_Right_middle_finger\.BMP$'),
+        'ring': re.compile(r'.*_Right_ring_finger\.BMP$'),
+        'pinkie': re.compile(r'.*_Right_little_finger\.BMP$'),
     }
 
-    img_folder = os.path.join(abs_path, "SOCOFing")
+    img_folder = os.path.join(abs_path, "images")
 
+    # Create main gender directories in project directory
     if not os.path.exists(male_dirname):
         os.mkdir(male_dirname)
     if not os.path.exists(female_dirname):
         os.mkdir(female_dirname)
 
+    # Create hand and finger subdirectories
     for hand in ['Left', 'Right']:
         hand_dirname_male = os.path.join(male_dirname, f"{hand} Hand")
         hand_dirname_female = os.path.join(female_dirname, f"{hand} Hand")
@@ -57,32 +61,38 @@ def createDirectories():
             if not os.path.exists(finger_dirname_female):
                 os.mkdir(finger_dirname_female)
 
+    global re_exceptions
+    # Process each image
     for img in os.listdir(img_folder):
         img_path = os.path.join(img_folder, img)
         
         if os.path.isfile(img_path):
+            # Determine gender based on the filename
             if male_pattern.match(img):
-                # Determine the correct finger directory for males
+                hand = 'Left' if 'Left' in img else 'Right'
                 finger_found = False
-                for finger, pattern in male_pattern.items():
+                for finger, pattern in (left_patterns if hand == 'Left' else right_patterns).items():
                     if pattern.match(img):
-                        shutil.copy(img_path, os.path.join(male_dirname, f"{hand} Hand", finger))
+                        dest_path = os.path.join(male_dirname, f"{hand} Hand", finger)
+                        shutil.copy(img_path, os.path.join(dest_path, img))
                         finger_found = True
                         break
                 if not finger_found:
-                    shutil.copy(img_path, male_dirname)  # If no specific finger match, place in general male folder
+                    shutil.copy(img_path, male_dirname)
             elif female_pattern.match(img):
-                # Determine the correct finger directory for females
+                hand = 'Left' if 'Left' in img else 'Right'
                 finger_found = False
-                for finger, pattern in female_pattern.items():
+                for finger, pattern in (left_patterns if hand == 'Left' else right_patterns).items():
                     if pattern.match(img):
-                        shutil.copy(img_path, os.path.join(female_dirname, f"{hand} Hand", finger))
+                        dest_path = os.path.join(female_dirname, f"{hand} Hand", finger)
+                        shutil.copy(img_path, os.path.join(dest_path, img))
                         finger_found = True
                         break
                 if not finger_found:
-                    shutil.copy(img_path, female_dirname)  # If no specific finger match, place in general female folder
+                    shutil.copy(img_path, female_dirname)
             else:
                 re_exceptions += 1
+
 
 def processImages():
     # TO DO: look more into fingerprint recognition techniques/algorithms/etc, the code below will also need to be tweaked
@@ -91,6 +101,7 @@ def processImages():
         img_array = cv2.imread(img)
         img_array = cv2.resize(img_array, (NEW_SIZE, NEW_SIZE))
 
-createDirectories()
+# createDirectories() # only need to call once
+
 
 print("Number of images that couldn't be categorized: ", re_exceptions)
