@@ -1,4 +1,5 @@
 # I guess we do option 1 since I'm already implementing the data preprocessing lol
+# Need to ask if using scikit-image built in filters such as sobel and others are considered built in libraries or if we'll have to implement them ourselves
 
 import numpy as np
 import cv2
@@ -8,6 +9,7 @@ import random
 import pickle
 import re
 import shutil
+import skimage import io, filters, color
 
 NEW_SIZE = 300
 
