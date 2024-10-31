@@ -9,7 +9,7 @@ import random
 import pickle
 import re
 import shutil
-import skimage import io, filters, color
+from skimage import io, filters, color
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 re_exceptions = 0
