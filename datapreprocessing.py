@@ -9,8 +9,6 @@ import pickle
 import re
 import shutil
 
-NEW_SIZE = 300
-
 abs_path = os.path.dirname(os.path.abspath(__file__))
 re_exceptions = 0
 male_dirname = "Male Fingers"
@@ -92,16 +90,45 @@ def createDirectories():
                     shutil.copy(img_path, female_dirname)
             else:
                 re_exceptions += 1
+    print("Number of images that couldn't be categorized: ", re_exceptions)
 
+def processImages(X_train, Y_train, X_test, Y_test):
+    # get images (start with female first just to test)                                                 done
+    # perform transformations on image                                                                  half-done
+    # put image inside of the X_train array or some other intermediate value                            half-done
+    # zip X_train and Y_train or some other intermediate array
+    # perform randomization on the previously mentioned array
+    # put 80% of the images into the train section and 20% into the validation section
 
-def processImages():
-    # TO DO: look more into fingerprint recognition techniques/algorithms/etc, the code below will also need to be tweaked
-    img_folder = os.path.join(abs_path,  "images")
-    for img in img_folder:
-        img_array = cv2.imread(img)
-        img_array = cv2.resize(img_array, (NEW_SIZE, NEW_SIZE))
+    temp_X_array = []
+    temp_Y_array = [] 
+    f_img_folder = os.path.join(abs_path,  female_dirname)
+    for hand_folder in os.listdir(f_img_folder):
+        hand_folder_path = os.path.join(f_img_folder, hand_folder)
+        for finger_folder in os.listdir(hand_folder_path):
+            finger_folder_path = os.path.join(hand_folder_path, finger_folder)
+            for img_file in os.listdir(finger_folder_path): 
+                img = os.path.join(finger_folder_path, img_file)
+                img = cv2.imread(img)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                print('image size: ', img.shape)
+                temp_X_array.append([img])
+                temp_Y_array.append(finger_folder)
+            # print('length of temp array: ', len(temp_X_array))
+            # temp_Y_array.append(finger_folder)
+            #break
+    print('length of temp X array: ', len(temp_X_array))
+    print('length of temp Y array: ', len(temp_Y_array))
+    
 
-# createDirectories() # only need to call once
+def main():
+    X_train = np.array([])
+    Y_train = np.array([])
+    X_test = np.array([])
+    Y_test = np.array([])
+    # createDirectories() # only need to call once
+    processImages(X_train, Y_train, X_test, Y_test)
 
+if __name__ == "__main__":
+    main()
 
-print("Number of images that couldn't be categorized: ", re_exceptions)
