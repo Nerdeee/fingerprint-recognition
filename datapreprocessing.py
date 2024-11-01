@@ -104,24 +104,58 @@ def processImages(X_train, Y_train, X_test, Y_test):
 
     temp_X_array = []
     temp_Y_array = [] 
-    f_img_folder = os.path.join(abs_path,  female_dirname)
-    for hand_folder in os.listdir(f_img_folder):
-        hand_folder_path = os.path.join(f_img_folder, hand_folder)
-        for finger_folder in os.listdir(hand_folder_path):
-            finger_folder_path = os.path.join(hand_folder_path, finger_folder)
-            for img_file in os.listdir(finger_folder_path): 
-                img = os.path.join(finger_folder_path, img_file)
-                img = cv2.imread(img)
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                print('image size: ', img.shape)
-                temp_X_array.append([img])
-                temp_Y_array.append(finger_folder)
-            # print('length of temp array: ', len(temp_X_array))
-            # temp_Y_array.append(finger_folder)
-            #break
-    print('length of temp X array: ', len(temp_X_array))
-    print('length of temp Y array: ', len(temp_Y_array))
+    def traverse(gender_folder_name):
+        folder_name = os.path.join(abs_path,  gender_folder_name)
+        for hand_folder in os.listdir(folder_name):
+            hand_folder_path = os.path.join(folder_name, hand_folder)
+            for finger_folder in os.listdir(hand_folder_path):
+                finger_folder_path = os.path.join(hand_folder_path, finger_folder)
+                for img_file in os.listdir(finger_folder_path): 
+                    img = os.path.join(finger_folder_path, img_file)
+                    img = cv2.imread(img)
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    # print('image size: ', img.shape)
+                    temp_X_array.append([img])
+                    temp_Y_array.append(finger_folder)
+        print(f'\nlength of temp X array for  the {gender_folder_name} folder: ', len(temp_X_array))
+        print(f'length of temp Y array for the {gender_folder_name} folder: ', len(temp_Y_array))
     
+
+    def transformImage(img):
+        sobel_x = np.array([[-1, 0, 1],
+                            [-2, 0, 2],
+                            [-1, 0, 1]])
+        
+        sobel_y = np.array([[1, 2, 1],
+                            [0, 0, 0],
+                            [-1, -2, -1]])
+        
+        x = np.zeros_like(img)
+        y = np.zeros_like(img)
+
+        for i in range(1, img.shape[0] - 1):
+            for j in range(1, img.shape[1] - 1):
+                x[i, j] = np.sum(sobel_x * img[i-1:i+2, j-1:j+2])
+                y[i, j] = np.sum(sobel_y * img[i-1:i+2, j-1:j+2])
+        
+        magnitudes = np.sqrt(x ** 2 + y ** 2)
+
+        normalized_magnitudes = magnitudes / magnitudes.max()
+        return normalized_magnitudes
+
+
+    traverse(female_dirname)
+    traverse(male_dirname)
+
+    # perform transformations
+
+    for img_array in temp_X_array:
+        transformImage(img_array)
+    
+
+
+def splitData():
+    return
 
 def main():
     X_train = np.array([])
@@ -130,6 +164,7 @@ def main():
     Y_test = np.array([])
     # createDirectories() # only need to call once
     processImages(X_train, Y_train, X_test, Y_test)
+    splitData()
 
 if __name__ == "__main__":
     main()
