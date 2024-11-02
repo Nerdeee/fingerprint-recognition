@@ -18,7 +18,6 @@ abs_path = os.path.dirname(os.path.abspath(__file__))
 re_exceptions = 0
 male_dirname = "Male Fingers"
 female_dirname = "Female Fingers"
-one_hot_encoder = [""] * 12
 
 def createDirectories():
     # Updated patterns to match exact format
@@ -191,7 +190,7 @@ def one_hot_encode(hand, finger, gender):
     return encoding
 
 
-def randomizeImages(temp_X_array, temp_Y_array):
+def randomizeImages(temp_X_array, temp_Y_array, X_train, Y_train, X_test, Y_test):
     print(type(temp_X_array))
     print(type(temp_Y_array))
     
@@ -199,14 +198,20 @@ def randomizeImages(temp_X_array, temp_Y_array):
     for i in range(len(temp_X_array)):
         zipped_array.append(zip(temp_X_array[i], temp_Y_array[i])) # array of tuples where each tule is of length 2. Tuple[0] = image matrix, tuple[1] = class
     random.shuffle(zipped_array)
-    return zipped_array
+
+    # split data into test and train
+    test_train_split = int(0.8 * len(zipped_array))
+    X_train, Y_train = zipped_array[:test_train_split]
+    X_test, Y_test = zipped_array[test_train_split:]
+    return X_train, Y_train, X_test, Y_test
+    
 
 
 def main():
-    X_train = np.array([])
-    Y_train = np.array([])
-    X_test = np.array([])
-    Y_test = np.array([])
+    X_train = []
+    Y_train = []
+    X_test = []
+    Y_test = []
     
     temp_X_array = []
     temp_Y_array = []
@@ -214,14 +219,18 @@ def main():
     processImages(temp_X_array, temp_Y_array)
     print('Length of temp X array: ', len(temp_X_array))
     print('Length of temp Y array: ', len(temp_Y_array))
-    zipped_array = randomizeImages(temp_X_array, temp_Y_array)
-    print('Zipped array of type: ', type(zipped_array), ' ----- with length: ', len(zipped_array))
-    
-    '''print("X_train shape:", X_train.shape)
+    X_train, Y_train, X_test, Y_test = randomizeImages(temp_X_array, temp_Y_array, X_train, Y_train, X_test, Y_test)
+    X_train = np.array(X_train)
+    Y_train = np.array(Y_train)
+    X_test = np.array(X_test)
+    Y_test = np.array(Y_test)    
+
+    # NEED TO TEST THIS AND ADD PICKE CODE THEN MOVE ON TO MODEL
+    print("X_train shape:", X_train.shape)
     print("Y_train shape:", Y_train.shape)
     print("X_test shape:", X_test.shape)
     print("Y_test shape:", Y_test.shape)
-    '''
+    
     
 if __name__ == "__main__":
     main()
