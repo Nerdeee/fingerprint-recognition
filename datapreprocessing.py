@@ -11,12 +11,14 @@ import random
 import pickle
 import re
 import shutil
+import pickle
 from skimage import io, filters, color
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 re_exceptions = 0
 male_dirname = "Male Fingers"
 female_dirname = "Female Fingers"
+one_hot_encoder = [""] * 12
 
 def createDirectories():
     # Updated patterns to match exact format
@@ -101,6 +103,7 @@ def processImages(temp_X_array, temp_Y_array):
 
     def traverse(gender_folder_name):
         folder_name = os.path.join(abs_path, gender_folder_name)
+        gender = "Male" if "Male Fingers" in gender_folder_name else "Female"
         for hand_folder in os.listdir(folder_name):
             hand_folder_path = os.path.join(folder_name, hand_folder)
             for finger_folder in os.listdir(hand_folder_path):
@@ -110,7 +113,8 @@ def processImages(temp_X_array, temp_Y_array):
                     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
                     img = cv2.resize(img, (96, 103))
                     temp_X_array.append(img)  # Append the image array directly
-                    temp_Y_array.append(finger_folder)  # Label for the image
+                    encoded_label = one_hot_encode(hand_folder, finger_folder, gender)
+                    temp_Y_array.append(encoded_label)  # Label for the image
                     #print('\n\n\n\n\n', temp_Y_array[0], '\n\n\n\n')
                     #break
         print(f'Length of temp X array for {gender_folder_name}: ', len(temp_X_array))
@@ -155,16 +159,50 @@ def processImages(temp_X_array, temp_Y_array):
        print(f"index {i}: ", np.array(temp_X_array[i]).shape)
     return
 
-def encodeImages(temp_X_array, temp_Y_array):
+def one_hot_encode(hand, finger, gender):
+    # Initialize a 12-element vector with zeros
+    encoding = [0] * 12
+    
+    # Mapping of fingers for each hand to vector index positions
+    finger_mapping = {
+        'Left_thumb': 0,
+        'Left_index': 1,
+        'Left_middle': 2,
+        'Left_ring': 3,
+        'Left_pinkie': 4,
+        'Right_thumb': 9,
+        'Right_index': 8,
+        'Right_middle': 7,
+        'Right_ring': 6,
+        'Right_pinkie': 5,
+    }
+    
+    # Set the appropriate finger-hand element to 1
+    finger_hand_key = f"{hand}_{finger}"
+    if finger_hand_key in finger_mapping:
+        encoding[finger_mapping[finger_hand_key]] = 1
+
+    # Set the gender element to 1 (element 10 for male, 11 for female)
+    if gender == "Male":
+        encoding[10] = 1
+    elif gender == "Female":
+        encoding[11] = 1
+
+    return encoding
+
+
+def randomizeImages(temp_X_array, temp_Y_array):
     print(type(temp_X_array))
     print(type(temp_Y_array))
+    
     zipped_array = []
     for i in range(len(temp_X_array)):
         zipped_array.append(zip(temp_X_array[i], temp_Y_array[i])) # array of tuples where each tule is of length 2. Tuple[0] = image matrix, tuple[1] = class
-    print(len(zipped_array))
-    
+    random.shuffle(zipped_array)
+    return zipped_array
+
+
 def main():
-    
     X_train = np.array([])
     Y_train = np.array([])
     X_test = np.array([])
@@ -173,18 +211,18 @@ def main():
     temp_X_array = []
     temp_Y_array = []
     # createDirectories() # only need to call once
-    # processImages(X_train, Y_train, X_test, Y_test)
-    # processImages(zipped_images_labels)
     processImages(temp_X_array, temp_Y_array)
     print('Length of temp X array: ', len(temp_X_array))
     print('Length of temp Y array: ', len(temp_Y_array))
-    encodeImages(temp_X_array, temp_Y_array)
-    """ print("X_train shape:", X_train)
+    zipped_array = randomizeImages(temp_X_array, temp_Y_array)
+    print('Zipped array of type: ', type(zipped_array), ' ----- with length: ', len(zipped_array))
+    
+    '''print("X_train shape:", X_train.shape)
     print("Y_train shape:", Y_train.shape)
     print("X_test shape:", X_test.shape)
     print("Y_test shape:", Y_test.shape)
-    """
-
+    '''
+    
 if __name__ == "__main__":
     main()
 
