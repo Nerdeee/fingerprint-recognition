@@ -229,19 +229,19 @@ def main():
     print("Y_test shape:", Y_test.shape)
     
     # Put split data into respective pickle
-    pickle_out = open("X_train", "wb")
+    pickle_out = open("X_train.pickle", "wb")
     pickle.dump(X_train, pickle_out)
     pickle_out.close()
 
-    pickle_out = open("Y_train", "wb")
+    pickle_out = open("Y_train.pickle", "wb")
     pickle.dump(Y_train, pickle_out)
     pickle_out.close()
 
-    pickle_out = open("X_test", "wb")
+    pickle_out = open("X_test.pickle", "wb")
     pickle.dump(X_test, pickle_out)
     pickle_out.close()
 
-    pickle_out = open("Y_test", "wb")
+    pickle_out = open("Y_test.pickle", "wb")
     pickle.dump(Y_test, pickle_out)
     pickle_out.close()
     
