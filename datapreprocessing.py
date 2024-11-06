@@ -189,23 +189,20 @@ def one_hot_encode(hand, finger, gender):
 
     return encoding
 
-
 def randomizeImages(temp_X_array, temp_Y_array, X_train, Y_train, X_test, Y_test):
-    print(type(temp_X_array))
-    print(type(temp_Y_array))
-    
-    zipped_array = []
-    for i in range(len(temp_X_array)):
-        zipped_array.append(zip(temp_X_array[i], temp_Y_array[i])) # array of tuples where each tule is of length 2. Tuple[0] = image matrix, tuple[1] = class
+    zipped_array = list(zip(temp_X_array, temp_Y_array))  # Correctly zip the arrays together
     random.shuffle(zipped_array)
-
+    
     # split data into test and train
     test_train_split = int(0.8 * len(zipped_array))
-    X_train, Y_train = zipped_array[:test_train_split]
-    X_test, Y_test = zipped_array[test_train_split:]
-    return X_train, Y_train, X_test, Y_test
+    train_data = zipped_array[:test_train_split]
+    test_data = zipped_array[test_train_split:]
     
-
+    # Separate images and labels for training and testing
+    X_train, Y_train = zip(*train_data)
+    X_test, Y_test = zip(*test_data)
+    
+    return list(X_train), list(Y_train), list(X_test), list(Y_test)
 
 def main():
     X_train = []
@@ -231,6 +228,22 @@ def main():
     print("X_test shape:", X_test.shape)
     print("Y_test shape:", Y_test.shape)
     
+    # Put split data into respective pickle
+    pickle_out = open("X_train", "wb")
+    pickle.dump(X_train, pickle_out)
+    pickle_out.close()
+
+    pickle_out = open("Y_train", "wb")
+    pickle.dump(Y_train, pickle_out)
+    pickle_out.close()
+
+    pickle_out = open("X_test", "wb")
+    pickle.dump(X_test, pickle_out)
+    pickle_out.close()
+
+    pickle_out = open("Y_test", "wb")
+    pickle.dump(Y_test, pickle_out)
+    pickle_out.close()
     
 if __name__ == "__main__":
     main()
