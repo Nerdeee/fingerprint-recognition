@@ -2,7 +2,7 @@ images/
 SOCOFing/
 Male Fingers/
 Female Fingers/
-X_test
-X_train
-Y_test
-Y_train
+X_test.pickle
+X_train.pickle
+Y_test.pickle
+Y_train.pickle
