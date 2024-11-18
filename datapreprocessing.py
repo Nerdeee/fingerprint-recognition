@@ -12,8 +12,8 @@ def get_finger_info(filename):
     subject = parts[0]  # e.g., '008'
     hand_finger = parts[1]  # R1, L2, etc.
     hand = hand_finger[0]  # R or L
-    finger = int(hand_finger[1])  # 1-5
-    orientation = int(parts[2].split('.')[0])
+    orientation = hand_finger[1]
+    finger = int(parts[2].split('.')[0])
     return subject, hand, finger, orientation
 
 def one_hot_encode(subject, hand, finger):
@@ -113,6 +113,10 @@ def process_dataset(root_dir):
             X_test.append(img)
             Y_test.append(label)
     
+    zipped_train = list(zip(X_train, Y_train))
+    random.shuffle(zipped_train)
+    X_train, Y_train = zip(*zipped_train)
+    X_train, Y_train = list(X_train), list(Y_train)
     # Convert to numpy arrays
     return (np.array(X_train), np.array(Y_train),
             np.array(X_test), np.array(Y_test))
@@ -143,6 +147,8 @@ def main():
     print("X_test shape:", X_test.shape)
     print("Y_test shape:", Y_test.shape)
     
+    # might want to print the shuffled arrays just to make sure it worked properly
+
     # Save to pickle files
     save_to_pickle(X_train, Y_train, X_test, Y_test)
 
