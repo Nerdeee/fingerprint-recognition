@@ -96,7 +96,7 @@ print(num_features)
 
 '''
 # Training Loop
-num_epochs = 5
+num_epochs = 100
 for epoch in range(num_epochs):
     model.train()
     optimizer.zero_grad()
