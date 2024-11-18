@@ -39,32 +39,18 @@ def one_hot_encode(subject, hand, finger):
     return encoding
 
 def transformImage(img):
-    """Apply Sobel edge detection and normalize the image."""
-    sobel_x = np.array([[-1, 0, 1],
-                        [-2, 0, 2],
-                        [-1, 0, 1]])
+    image = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
+    normalized_image = image / 255.0
+    resized_image = cv2.resize(normalized_image, (96, 103))
+    resized_image_uint8 = (resized_image * 255).astype(np.uint8)
+    blurred_image = cv2.GaussianBlur(resized_image_uint8, (3, 3), 0)
+    _, segmented_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    equalized_image = cv2.equalizeHist(segmented_image)
+    binarized_image = cv2.adaptiveThreshold(equalized_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 7, 2)
+    mean, std_dev = np.mean(binarized_image), np.std(binarized_image)
+    standardized_image = (binarized_image - mean) / std_dev
     
-    sobel_y = np.array([[1, 2, 1],
-                        [0, 0, 0],
-                        [-1, -2, -1]])
-    
-    x = np.zeros_like(img, dtype=float)
-    y = np.zeros_like(img, dtype=float)
-    img = img.astype(float)
-    
-    for i in range(1, img.shape[0] - 1):
-        for j in range(1, img.shape[1] - 1):
-            x[i, j] = np.sum(sobel_x * img[i-1:i+2, j-1:j+2])
-            y[i, j] = np.sum(sobel_y * img[i-1:i+2, j-1:j+2])
-    
-    magnitudes = np.sqrt(x ** 2 + y ** 2)
-    
-    if np.max(magnitudes) != 0:
-        normalized_magnitudes = magnitudes / np.max(magnitudes)
-    else:
-        normalized_magnitudes = magnitudes
-    
-    return normalized_magnitudes
+    return standardized_image
 
 def process_dataset(root_dir):
     """Process the dataset and split by subject."""
@@ -95,9 +81,7 @@ def process_dataset(root_dir):
                 
                 # Read and process image
                 img_path = os.path.join(hand_path, img_name)
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-                img = cv2.resize(img, (96, 103))
-                img = transformImage(img)
+                img = transformImage(img_path)
                 
                 # Create label
                 label = one_hot_encode(subject, hand, finger)
@@ -141,7 +125,7 @@ def save_to_pickle(X_train, Y_train, X_test, Y_test):
         "X_test.pickle": X_test,
         "Y_test.pickle": Y_test
     }
-    
+    os.chdir('CSCI158Project')    
     for filename, data in datasets.items():
         with open(filename, "wb") as f:
             pickle.dump(data, f)
@@ -149,7 +133,7 @@ def save_to_pickle(X_train, Y_train, X_test, Y_test):
 def main():
     # Get the root directory (where the script is located)
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
     # Process the dataset
     X_train, Y_train, X_test, Y_test = process_dataset(root_dir)
     
