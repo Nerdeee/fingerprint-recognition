@@ -4,6 +4,7 @@ import os
 import random
 import pickle
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 def get_finger_info(filename):
     """Extract subject, hand, finger, and orientation from filename."""
@@ -16,25 +17,25 @@ def get_finger_info(filename):
     finger = int(parts[2].split('.')[0])
     return subject, hand, finger, orientation
 
-def one_hot_encode(subject, hand, finger):
+def label_encode(subject, hand, finger):
     """
     Create one-hot encoding with 9 elements:
     - Indices 0-2: subject number (three digits)
     - Indices 3-7: finger (3=thumb, 4=index, 5=middle, 6=ring, 7=pinkie)
     - Index 8: hand (0=left, 1=right)
     """
-    encoding = [0] * 9
+    encoding = [0] * 7
     
     # Encode subject (3 digits)
-    subject_digits = [int(d) for d in subject]
-    for i in range(3):
-        encoding[i] = subject_digits[i]
-    
+    #subject_digits = [int(d) for d in subject]
+    #for i in range(3):
+    #    encoding[i] = subject_digits[i]
+    encoding[0] = subject
     # Encode finger (1-5 maps to indices 3-7)
-    encoding[finger + 2] = 1  # +2 because finger 1 should map to index 3
+    encoding[finger + 1] = 1  # +2 because finger 1 should map to index 3
     
     # Encode hand (0 for left, 1 for right)
-    encoding[8] = 1 if hand == 'R' else 0
+    encoding[6] = 1 if hand == 'R' else 0
         
     return encoding
 
@@ -84,7 +85,7 @@ def process_dataset(root_dir):
                 img = transformImage(img_path)
                 
                 # Create label
-                label = one_hot_encode(subject, hand, finger)
+                label = label_encode(subject, hand, finger)
                 
                 # Store processed image and label with subject
                 subject_data[subject].append((img, label))
