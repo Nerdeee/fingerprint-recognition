@@ -10,7 +10,7 @@ def get_finger_info(filename):
     """Extract subject, hand, finger, and orientation from filename."""
     # Example: 008_R1_2.bmp
     parts = filename.split('_')
-    subject = parts[0]  # e.g., '008'
+    subject = int(parts[0])  # e.g., '008'
     hand_finger = parts[1]  # R1, L2, etc.
     hand = hand_finger[0]  # R or L
     orientation = hand_finger[1]
@@ -35,8 +35,7 @@ def label_encode(subject, hand, finger):
     encoding[finger + 1] = 1  # +2 because finger 1 should map to index 3
     
     # Encode hand (0 for left, 1 for right)
-    encoding[6] = 1 if hand == 'R' else 0
-        
+    encoding[6] = 1 if hand == 'R' else 0    
     return encoding
 
 def transformImage(img):
@@ -85,8 +84,7 @@ def process_dataset(root_dir):
                 img = transformImage(img_path)
                 
                 # Create label
-                label = label_encode(subject, hand, finger)
-                
+                label = label_encode(subject, hand, finger) # looks good here
                 # Store processed image and label with subject
                 subject_data[subject].append((img, label))
                 print(f'{subject} {hand} {finger} {orientation} processed successfully')
@@ -94,7 +92,7 @@ def process_dataset(root_dir):
     # Split data into train and test sets by subject
     X_train, Y_train = [], []
     X_test, Y_test = [], []
-    
+    print('subject data: ', subject_data[0])
     for subject, data in subject_data.items():
         # Shuffle subject's data
         random.shuffle(data)
@@ -117,10 +115,11 @@ def process_dataset(root_dir):
     zipped_train = list(zip(X_train, Y_train))
     random.shuffle(zipped_train)
     X_train, Y_train = zip(*zipped_train)
+    #print('Y_train unpacked = ', Y_train)
     X_train, Y_train = list(X_train), list(Y_train)
+    print('Y_train list = ', Y_train)
     # Convert to numpy arrays
-    return (np.array(X_train), np.array(Y_train),
-            np.array(X_test), np.array(Y_test))
+    return X_train, Y_train, X_test, Y_test
 
 def save_to_pickle(X_train, Y_train, X_test, Y_test):
     """Save processed data to pickle files."""
@@ -141,13 +140,16 @@ def main():
 
     # Process the dataset
     X_train, Y_train, X_test, Y_test = process_dataset(root_dir)
-    
+    print('\nMain function Y_train = ', Y_train)
+    X_train, Y_train, X_test, Y_test = np.array(X_train, dtype=int), np.array(Y_train, dtype=int), np.array(X_test, dtype=int), np.array(Y_test, dtype=int)
+    print('\nMain function Y_train as numpy array = ', Y_train)
     # Print shapes for verification
     print("X_train shape:", X_train.shape)
     print("Y_train shape:", Y_train.shape)
     print("X_test shape:", X_test.shape)
     print("Y_test shape:", Y_test.shape)
-    
+    for i in Y_train:
+        print(i, '\n')
     # might want to print the shuffled arrays just to make sure it worked properly
 
     # Save to pickle files
