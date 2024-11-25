@@ -132,16 +132,6 @@ for epoch in range(num_epochs):
     # Total loss
     loss = loss_subject + loss_finger + loss_hand
 
-    # Summary writer
-    writer.add_scalar('Loss/Total', loss.item(), epoch)
-    writer.add_scalar('Loss/Subject', loss_subject.item(), epoch)
-    writer.add_scalar('Loss/Finger', loss_finger.item(), epoch)
-    writer.add_scalar('Loss/Hand', loss_hand.item(), epoch)
-    
-    writer.add_scalar('Accuracy/Subject', subject_acc, epoch)
-    writer.add_scalar('Accuracy/Finger', finger_acc, epoch)
-    writer.add_scalar('Accuracy/Hand', hand_acc, epoch)
-
     # Backward pass
     loss.backward()
     optimizer.step()
@@ -157,18 +147,28 @@ for epoch in range(num_epochs):
           f'Finger Accuracy: {finger_acc * 100:.2f}%, '
           f'Hand Accuracy: {hand_acc * 100:.2f}%')
 
+    # Summary writer
+    writer.add_scalar('Loss/Total', loss.item(), epoch)
+    writer.add_scalar('Loss/Subject', loss_subject.item(), epoch)
+    writer.add_scalar('Loss/Finger', loss_finger.item(), epoch)
+    writer.add_scalar('Loss/Hand', loss_hand.item(), epoch)
+    
+    writer.add_scalar('Accuracy/Subject', subject_acc, epoch)
+    writer.add_scalar('Accuracy/Finger', finger_acc, epoch)
+    writer.add_scalar('Accuracy/Hand', hand_acc, epoch)
+
 writer.close()
 
-Y_test_subject = Y_train[:, 0].long()
-Y_test_finger = Y_train[:, 1:6].float()
-Y_test_hand = Y_train[:, 6].long()
+Y_test_subject = Y_test[:, 0].long()
+Y_test_finger = Y_test[:, 1:6].float()
+Y_test_hand = Y_test[:, 6].long()
 
 with torch.no_grad():
     subject_out, finger_out, hand_out = model(X_test)
 
-    calculate_accuracy(subject_out, Y_test_subject)
-    finger_calculate_accuracy(finger_out, Y_test_finger)
-    calculate_accuracy(hand_out, Y_test_hand)
+    subject_acc = calculate_accuracy(subject_out, Y_test_subject)
+    finger_acc = finger_calculate_accuracy(finger_out, Y_test_finger)
+    hand_acc = calculate_accuracy(hand_out, Y_test_hand)
 
     test_date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = (f"{test_date_time} - "
