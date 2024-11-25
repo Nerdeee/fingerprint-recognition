@@ -118,7 +118,7 @@ outputs = model(X_train)
 
 
 # Training Loop
-num_epochs = 100
+num_epochs = 500
 for epoch in range(num_epochs):
     model.train()
     optimizer.zero_grad()
