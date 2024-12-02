@@ -9,6 +9,8 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 import datetime
 
+device = 'gpu'
+
 os.chdir("CSCI158Project")
 writer = SummaryWriter()
 
@@ -83,7 +85,6 @@ class NeuralNet(nn.Module):
         
 # Accuracy Calculation
 def calculate_accuracy(y_pred, y_true):
-    """Calculate accuracy for classification tasks"""
     _, predicted = torch.max(y_pred, 1)  # Get predicted class indices
     correct = (predicted == y_true).sum().item()
     return correct / y_true.size(0)
@@ -104,7 +105,7 @@ def finger_calculate_accuracy(y_pred, y_true):
 #Y_hand = torch.randint(0, 2, (16000,))       # Hand labels (binary)
 
 # Model, Loss, and Optimizer
-model = NeuralNet()
+model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
 loss_fn_finger = nn.CrossEntropyLoss()
 loss_fn_hand = nn.CrossEntropyLoss()
