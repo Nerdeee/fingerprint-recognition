@@ -41,7 +41,7 @@ def label_encode(subject, hand, finger):
 def transformImage(img):
     image = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
     normalized_image = image / 255.0
-    resized_image = cv2.resize(normalized_image, (96, 103))
+    resized_image = cv2.resize(normalized_image, (96, 96))
     resized_image_uint8 = (resized_image * 255).astype(np.uint8)
     blurred_image = cv2.GaussianBlur(resized_image_uint8, (3, 3), 0)
     _, segmented_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -129,7 +129,6 @@ def save_to_pickle(X_train, Y_train, X_test, Y_test):
         "X_test.pickle": X_test,
         "Y_test.pickle": Y_test
     }
-    os.chdir('CSCI158Project')    
     for filename, data in datasets.items():
         with open(filename, "wb") as f:
             pickle.dump(data, f)
