@@ -9,6 +9,8 @@ import datetime
 
 writer = SummaryWriter()
 
+device = 'gpu'
+
 # Load data
 with open("X_train.pickle", "rb") as f:
     X_train = pickle.load(f)
@@ -97,8 +99,15 @@ def finger_calculate_accuracy(y_pred, y_true):
     correct = (predicted == true).sum().item()  # Count how many are correct
     return correct / y_true.size(0)
 
-# Training Loop
-model = NeuralNet()
+# Dummy Data Preparation
+# Assume we have preprocessed dataset with features (X) and labels split into subject, finger, hand
+#X_train = torch.rand(16000, 1, 103, 96)  # Example input: batch of 32 images, 1 channel, 28x28 resolution
+#Y_subject = torch.randint(0, 500, (16000,))  # Subject labels (500 classes)
+#Y_finger = torch.randint(0, 5, (16000,))     # Finger labels (5 classes)
+#Y_hand = torch.randint(0, 2, (16000,))       # Hand labels (binary)
+
+# Model, Loss, and Optimizer
+model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
 loss_fn_finger = nn.CrossEntropyLoss()  # If finger is multi-class
 loss_fn_hand = nn.CrossEntropyLoss()
