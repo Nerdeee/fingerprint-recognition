@@ -9,7 +9,7 @@ import datetime
 
 writer = SummaryWriter()
 
-device = 'gpu'
+device = 'cpu'
 
 # Load data
 with open("X_train.pickle", "rb") as f:
@@ -45,8 +45,8 @@ train_dataset = TensorDataset(X_train, Y_subject, Y_finger, Y_hand)
 test_dataset = TensorDataset(X_test, Y_test[:, 0].long(), Y_test[:, 1:6].float(), Y_test[:, 6].long())
 
 # Define DataLoader
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Batch size 32 is typical
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)  # Batch size 32 is typical
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # Neural Network Model
 class NeuralNet(nn.Module):
@@ -114,7 +114,7 @@ loss_fn_hand = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Training Loop
-num_epochs = 500
+num_epochs = 20
 for epoch in range(num_epochs):
     model.train()
     total_loss = 0

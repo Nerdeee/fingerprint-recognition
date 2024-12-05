@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 
 def get_finger_info(filename):
     """Extract subject, hand, finger, and orientation from filename."""
-    # Example: 008_R1_2.bmp
     parts = filename.split('_')
     subject = int(parts[0])  # e.g., '008'
     hand_finger = parts[1]  # R1, L2, etc.
@@ -26,16 +25,12 @@ def label_encode(subject, hand, finger):
     """
     encoding = [0] * 7
     
-    # Encode subject (3 digits)
-    #subject_digits = [int(d) for d in subject]
-    #for i in range(3):
-    #    encoding[i] = subject_digits[i]
-    encoding[0] = subject
-    # Encode finger (1-5 maps to indices 3-7)
-    encoding[finger + 1] = 1  # +2 because finger 1 should map to index 3
+    encoding[0] = subject  # Encode subject (3 digits)
     
-    # Encode hand (0 for left, 1 for right)
-    encoding[6] = 1 if hand == 'R' else 0    
+    encoding[finger + 1] = 1  # Encode finger (1-5 maps to indices 3-7)
+    
+    encoding[6] = 1 if hand == 'R' else 0  # Encode hand (0 for left, 1 for right)
+    
     return encoding
 
 def transformImage(img):
@@ -53,9 +48,8 @@ def transformImage(img):
     return standardized_image
 
 def process_dataset(root_dir):
-    """Process the dataset and split by subject."""
-    # Dictionary to store images by subject
-    subject_data = defaultdict(list)
+    """Process the dataset and split by subject and finger."""
+    subject_data = defaultdict(lambda: defaultdict(list))  # Store images by subject and finger
     
     # Process all subjects
     images_dir = os.path.join(root_dir, "images")
@@ -65,61 +59,54 @@ def process_dataset(root_dir):
             
         subject_path = os.path.join(images_dir, subject_folder)
         
-        # Process left and right hand folders
         for hand in ['L', 'R']:
             hand_path = os.path.join(subject_path, hand)
             if not os.path.exists(hand_path):
                 continue
                 
-            # Process all finger images in the hand folder
             for img_name in os.listdir(hand_path):
                 if not img_name.lower().endswith('.bmp'):
                     continue
                     
-                # Get image information
                 subject, hand, finger, orientation = get_finger_info(img_name)
                 
-                # Read and process image
                 img_path = os.path.join(hand_path, img_name)
                 img = transformImage(img_path)
                 
-                # Create label
-                label = label_encode(subject, hand, finger) # looks good here
-                # Store processed image and label with subject
-                subject_data[subject].append((img, label))
+                label = label_encode(subject, hand, finger)
+                
+                subject_data[subject][finger].append((img, label, hand))
                 print(f'{subject} {hand} {finger} {orientation} processed successfully')
     
-    # Split data into train and test sets by subject
+    # Now we perform the splitting into training and testing
     X_train, Y_train = [], []
     X_test, Y_test = [], []
-    print('subject data: ', subject_data[0])
-    for subject, data in subject_data.items():
-        # Shuffle subject's data
-        random.shuffle(data)
-        
-        # Split 80/20 for this subject
-        split_idx = int(len(data) * 0.8)
-        train_data = data[:split_idx]
-        test_data = data[split_idx:]
-        
-        # Add to training set
-        for img, label in train_data:
-            X_train.append(img)
-            Y_train.append(label)
-            
-        # Add to test set
-        for img, label in test_data:
-            X_test.append(img)
-            Y_test.append(label)
     
+    for subject, fingers in subject_data.items():
+        for finger, data in fingers.items():
+            # Shuffle the data for this subject's finger
+            random.shuffle(data)
+            
+            # One photo for testing, three for training
+            test_img, train_data = data[0], data[1:]
+            
+            # Add test image to test set
+            X_test.append(test_img[0])
+            Y_test.append(test_img[1])
+            
+            # Add remaining training images to train set
+            for img, label, hand in train_data:
+                X_train.append(img)
+                Y_train.append(label)
+    
+    # Shuffle the training data
     zipped_train = list(zip(X_train, Y_train))
     random.shuffle(zipped_train)
     X_train, Y_train = zip(*zipped_train)
-    #print('Y_train unpacked = ', Y_train)
     X_train, Y_train = list(X_train), list(Y_train)
-    print('Y_train list = ', Y_train)
+    
     # Convert to numpy arrays
-    return X_train, Y_train, X_test, Y_test
+    return np.array(X_train, dtype=int), np.array(Y_train, dtype=int), np.array(X_test, dtype=int), np.array(Y_test, dtype=int)
 
 def save_to_pickle(X_train, Y_train, X_test, Y_test):
     """Save processed data to pickle files."""
@@ -134,23 +121,12 @@ def save_to_pickle(X_train, Y_train, X_test, Y_test):
             pickle.dump(data, f)
 
 def main():
-    # Get the root directory (where the script is located)
     root_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Process the dataset
     X_train, Y_train, X_test, Y_test = process_dataset(root_dir)
     print('\nMain function Y_train = ', Y_train)
-    X_train, Y_train, X_test, Y_test = np.array(X_train, dtype=int), np.array(Y_train, dtype=int), np.array(X_test, dtype=int), np.array(Y_test, dtype=int)
-    print('\nMain function Y_train as numpy array = ', Y_train)
-    # Print shapes for verification
-    print("X_train shape:", X_train.shape)
-    print("Y_train shape:", Y_train.shape)
-    print("X_test shape:", X_test.shape)
-    print("Y_test shape:", Y_test.shape)
-    for i in Y_train:
-        print(i, '\n')
-    # might want to print the shuffled arrays just to make sure it worked properly
-
+    
     # Save to pickle files
     save_to_pickle(X_train, Y_train, X_test, Y_test)
 
