@@ -50,18 +50,18 @@ train_dataset = TensorDataset(X_train, Y_subject, Y_finger, Y_hand)
 test_dataset = TensorDataset(X_test, Y_test[:, 0].long(), Y_test[:, 1:6].float(), Y_test[:, 6].long())
 
 # Define DataLoader
-train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)  # Batch size 32 is typical
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)  # Batch size 32 is typical
+test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 # Neural Network Model
 class NeuralNet(nn.Module):
     def __init__(self):
         super(NeuralNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 128, kernel_size=2, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(128, 64, kernel_size=2, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(64, 32, kernel_size=2, stride=1, padding=1)
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.fc2 = nn.Linear(4608, 1024)
+        self.conv1 = nn.Conv2d(1, 512, kernel_size=2, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(512, 256, kernel_size=2, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(256, 128, kernel_size=2, stride=1, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
+        self.fc2 = nn.Linear(1179648, 1024)
 
         # Separate output layers
         self.subject_output = nn.Linear(1024, 500)  # 500 subjects
@@ -116,10 +116,10 @@ model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
 loss_fn_finger = nn.CrossEntropyLoss()  # If finger is multi-class
 loss_fn_hand = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001)
+optimizer = optim.SGD(model.parameters(), lr=0.0001)
 
 # Training Loop
-num_epochs = 20
+num_epochs = 50
 for epoch in range(num_epochs):
     torch.cuda.empty_cache()
     model.train()
@@ -129,8 +129,12 @@ for epoch in range(num_epochs):
     total_hand_acc = 0
 
     for batch_idx, (inputs, subjects, fingers, hands) in enumerate(train_loader):
+        inputs = inputs.to(device)
+        subjects = subjects.to(device)
+        fingers = fingers.to(device)
+        hands = hands.to(device)
+        
         optimizer.zero_grad()
-
         # Forward pass
         subject_out, finger_out, hand_out = model(inputs)
 
@@ -182,6 +186,11 @@ with torch.no_grad():
     total_hand_acc = 0
 
     for inputs, subjects, fingers, hands in test_loader:
+        inputs = inputs.to(device)
+        subjects = subjects.to(device)
+        fingers = fingers.to(device)
+        hands = hands.to(device)
+        
         subject_out, finger_out, hand_out = model(inputs)
 
         subject_acc = calculate_accuracy(subject_out, subjects)
