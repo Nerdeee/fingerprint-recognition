@@ -40,17 +40,44 @@ def label_encode(subject, hand, finger):
 
 def transformImage(img):
     image = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
-    normalized_image = image / 255.0
-    resized_image = cv2.resize(normalized_image, (96, 103))
-    resized_image_uint8 = (resized_image * 255).astype(np.uint8)
-    blurred_image = cv2.GaussianBlur(resized_image_uint8, (3, 3), 0)
-    _, segmented_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    equalized_image = cv2.equalizeHist(segmented_image)
-    binarized_image = cv2.adaptiveThreshold(equalized_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 7, 2)
-    mean, std_dev = np.mean(binarized_image), np.std(binarized_image)
-    standardized_image = (binarized_image - mean) / std_dev
     
-    return standardized_image
+    # Normalize the image
+    normalized_image = image / 255.0
+    
+    # Resize the image to the desired size
+    resized_image = cv2.resize(normalized_image, (96, 96))
+    
+    # Step 1: Histogram Equalization
+    equalized = cv2.equalizeHist((resized_image * 255).astype(np.uint8))
+    
+    # Step 2: Gaussian Blur (Optional for noise reduction)
+    blurred = cv2.GaussianBlur(equalized, (5, 5), 0)
+    
+    # Step 3: Adaptive Thresholding
+    thresholded = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                        cv2.THRESH_BINARY, 11, 2)
+    
+    # Step 4: Morphological Opening (Remove small noise)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    opened = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
+    
+    # Step 5: Skeletonization
+    def skeletonize(image):
+        skeleton = np.zeros(image.shape, dtype=np.uint8)
+        temp = np.copy(image)
+        while True:
+            eroded = cv2.erode(temp, None)
+            dilated = cv2.dilate(eroded, None)
+            subtracted = cv2.subtract(temp, dilated)
+            skeleton = cv2.bitwise_or(skeleton, subtracted)
+            temp = eroded.copy()
+            if cv2.countNonZero(temp) == 0:
+                break
+        return skeleton
+    
+    skeletonized = skeletonize(opened)
+
+    return skeletonized
 
 def process_dataset(root_dir):
     """Process the dataset and split by subject."""
@@ -82,7 +109,6 @@ def process_dataset(root_dir):
                 # Read and process image
                 img_path = os.path.join(hand_path, img_name)
                 img = transformImage(img_path)
-                
                 # Create label
                 label = label_encode(subject, hand, finger) # looks good here
                 # Store processed image and label with subject
@@ -129,7 +155,6 @@ def save_to_pickle(X_train, Y_train, X_test, Y_test):
         "X_test.pickle": X_test,
         "Y_test.pickle": Y_test
     }
-    os.chdir('CSCI158Project')    
     for filename, data in datasets.items():
         with open(filename, "wb") as f:
             pickle.dump(data, f)

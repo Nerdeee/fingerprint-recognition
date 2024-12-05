@@ -9,9 +9,13 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 import datetime
 
-device = 'gpu'
+if torch.cuda.is_available():
+    print(f"\nGPU: {torch.cuda.get_device_name(0)} is available")
+else:
+    print('\nNo GPU available')
 
-os.chdir("CSCI158Project")
+device = torch.device("cuda")
+
 writer = SummaryWriter()
 
 with open("X_train.pickle", "rb") as f:
@@ -28,56 +32,47 @@ with open("Y_test.pickle", "rb") as f:
 
 Y_train = np.array(Y_train)
 X_train = np.array(X_train)
+
 #print("\n\n Y_train np array = ", Y_train.dtype)
 #print("\n\n X_train type = ", X_train.dtype)
 X_train = torch.tensor(X_train).float()
 Y_train = torch.tensor(Y_train).long()
 print("\n\n Y_train type in tensor = ", Y_train.dtype)
-X_test = torch.tensor(X_test).float()
-Y_test = torch.tensor(Y_test).long()
-X_train = X_train.unsqueeze(1)
-X_test = X_test.unsqueeze(1)
+X_test = torch.tensor(X_test).float().to(device)
+Y_test = torch.tensor(Y_test).long().to(device)
+X_train = X_train.unsqueeze(1).to(device)
+X_test = X_test.unsqueeze(1).to(device)
+print('X_train size = ', X_train.size())
 
-
-Y_subject = Y_train[:, 0].long()
-Y_finger = Y_train[:, 1:6].float()
-Y_hand = Y_train[:, 6].long()
-
-print('\n\nt1: ', Y_subject)
-print('\n\nt2: ', Y_finger)
-print('\n\nt3: ', Y_hand)
+Y_subject = Y_train[:, 0].long().to(device)
+Y_finger = Y_train[:, 1:6].float().to(device)
+Y_hand = Y_train[:, 6].long().to(device)
 
 # Neural Network Model
 class NeuralNet(nn.Module):
     def __init__(self):
         super(NeuralNet, self).__init__()
         # Convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, stride=2, padding=2)
-        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=2, padding=2)
-        self.conv3 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=2, padding=2)
-        
-        # Fully connected layers
-        self.fc1 = nn.Linear(6720, 512)  # Adjust input size based on flattened output of conv layers
-        self.fc2 = nn.Linear(512, 256)
-
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=2, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=2, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=16, out_channels=8, kernel_size=2, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)        # Fully connected layers
         # Separate output layers
-        self.subject_output = nn.Linear(256, 500)  # 500 subjects
-        self.finger_output = nn.Linear(256, 5)    # 5 fingers
-        self.hand_output = nn.Linear(256, 2)     # 2 hands (left, right)
-
+        self.subject_output = nn.Linear(32, 500)  # 500 subjects
+        self.finger_output = nn.Linear(32, 5)    # 5 fingers
+        self.hand_output = nn.Linear(32, 2)     # 2 hands (left, right)
     def forward(self, x):
         # Pass through convolutional layers
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
+        x = self.maxpool(torch.relu(self.conv1(x)))
+        x = self.maxpool(torch.relu(self.conv2(x)))
+        x = self.maxpool(torch.relu(self.conv3(x)))
         
         # Flatten the output
         x = x.view(x.size(0), -1)  # Flatten to shape (batch_size, num_features)
         # Pass through fully connected layers
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
+        # x = torch.relu(self.fc1(x))
         # Separate outputs
-        subject_out = self.subject_output(x)
+        subject_out = (self.subject_output(x))
         finger_out = self.finger_output(x)
         hand_out = self.hand_output(x)
         
@@ -109,7 +104,7 @@ model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
 loss_fn_finger = nn.CrossEntropyLoss()
 loss_fn_hand = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.SGD(model.parameters(), lr=0.001)
 
 outputs = model(X_train)
 
@@ -119,50 +114,78 @@ outputs = model(X_train)
 
 
 # Training Loop
+batch_size = 1  # Experiment with this size; adjust based on available GPU memory
+num_batches = (X_train.size(0) + batch_size - 1) // batch_size  # Calculate total number of batches
+
+# Training Loop
 num_epochs = 500
 for epoch in range(num_epochs):
+    torch.cuda.empty_cache()
     model.train()
-    optimizer.zero_grad()
+    total_loss = 0
+    subject_acc_sum = 0
+    finger_acc_sum = 0
+    hand_acc_sum = 0
 
-    # Forward pass
-    subject_out, finger_out, hand_out = model(X_train)
-    # Compute losses
-    loss_subject = loss_fn_subject(subject_out, Y_subject)
-    loss_finger = loss_fn_finger(finger_out, Y_finger)
-    loss_hand = loss_fn_hand(hand_out, Y_hand)
-    # Total loss
-    loss = loss_subject + loss_finger + loss_hand
+    for i in range(num_batches):
+        start_idx = i * batch_size
+        end_idx = min(start_idx + batch_size, X_train.size(0))
 
-    # Backward pass
-    loss.backward()
-    optimizer.step()
+        X_batch = X_train[start_idx:end_idx]
+        Y_subject_batch = Y_subject[start_idx:end_idx]
+        Y_finger_batch = Y_finger[start_idx:end_idx]
+        Y_hand_batch = Y_hand[start_idx:end_idx]
 
-    # Accuracy calculations
-    subject_acc = calculate_accuracy(subject_out, Y_subject)
-    finger_acc = finger_calculate_accuracy(finger_out, Y_finger)
-    hand_acc = calculate_accuracy(hand_out, Y_hand)
+        optimizer.zero_grad()
+
+        # Forward pass
+        subject_out, finger_out, hand_out = model(X_batch)
+        
+        # Compute losses
+        loss_subject = loss_fn_subject(subject_out, Y_subject_batch)
+        loss_finger = loss_fn_finger(finger_out, Y_finger_batch)
+        loss_hand = loss_fn_hand(hand_out, Y_hand_batch)
+        
+        # Total loss
+        loss = loss_subject + loss_finger + loss_hand
+        total_loss += loss.item()
+
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+
+        # Accuracy calculations
+        subject_acc_sum += calculate_accuracy(subject_out, Y_subject_batch)
+        finger_acc_sum += finger_calculate_accuracy(finger_out, Y_finger_batch)
+        hand_acc_sum += calculate_accuracy(hand_out, Y_hand_batch)
+
+    # Average metrics over batches
+    avg_loss = total_loss / num_batches
+    avg_subject_acc = subject_acc_sum / num_batches
+    avg_finger_acc = finger_acc_sum / num_batches
+    avg_hand_acc = hand_acc_sum / num_batches
 
     print(f'Epoch [{epoch+1}/{num_epochs}], '
-          f'Loss: {loss.item():.4f}, '
-          f'Subject Accuracy: {subject_acc * 100:.2f}%, '
-          f'Finger Accuracy: {finger_acc * 100:.2f}%, '
-          f'Hand Accuracy: {hand_acc * 100:.2f}%')
+          f'Loss: {avg_loss:.4f}, '
+          f'Subject Accuracy: {avg_subject_acc * 100:.2f}%, '
+          f'Finger Accuracy: {avg_finger_acc * 100:.2f}%, '
+          f'Hand Accuracy: {avg_hand_acc * 100:.2f}%')
 
     # Summary writer
-    writer.add_scalar('Loss/Total', loss.item(), epoch)
+    writer.add_scalar('Loss/Total', avg_loss, epoch)
     writer.add_scalar('Loss/Subject', loss_subject.item(), epoch)
     writer.add_scalar('Loss/Finger', loss_finger.item(), epoch)
     writer.add_scalar('Loss/Hand', loss_hand.item(), epoch)
-    
-    writer.add_scalar('Accuracy/Subject', subject_acc, epoch)
-    writer.add_scalar('Accuracy/Finger', finger_acc, epoch)
-    writer.add_scalar('Accuracy/Hand', hand_acc, epoch)
+
+    writer.add_scalar('Accuracy/Subject', avg_subject_acc, epoch)
+    writer.add_scalar('Accuracy/Finger', avg_finger_acc, epoch)
+    writer.add_scalar('Accuracy/Hand', avg_hand_acc, epoch)
 
 writer.close()
 
-Y_test_subject = Y_test[:, 0].long()
-Y_test_finger = Y_test[:, 1:6].float()
-Y_test_hand = Y_test[:, 6].long()
+Y_test_subject = Y_test[:, 0].long().to(device)
+Y_test_finger = Y_test[:, 1:6].float().to(device)
+Y_test_hand = Y_test[:, 6].long().to(device)
 
 with torch.no_grad():
     subject_out, finger_out, hand_out = model(X_test)
