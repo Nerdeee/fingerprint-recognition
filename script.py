@@ -48,7 +48,7 @@ Y_hand = Y_train[:, 6].long()
 train_dataset = TensorDataset(X_train, Y_subject, Y_finger, Y_hand)
 test_dataset = TensorDataset(X_test, Y_test[:, 0].long(), Y_test[:, 1:6].float(), Y_test[:, 6].long())
 
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)  # Batch size 32 is typical
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 # neural network model
@@ -83,11 +83,13 @@ class NeuralNet(nn.Module):
         
         return subject_out, finger_out, hand_out
 
+# calculates accuracy for subject and hand
 def calculate_accuracy(y_pred, y_true):
     _, predicted = torch.max(y_pred, 1)
     correct = (predicted == y_true).sum().item()
     return correct / y_true.size(0)
 
+# calculates accuracy for finger
 def finger_calculate_accuracy(y_pred, y_true):
     _, predicted = torch.max(y_pred, 1)
     true = torch.argmax(y_true, 1)
@@ -101,7 +103,7 @@ def finger_calculate_accuracy(y_pred, y_true):
 #Y_hand = torch.randint(0, 2, (16000,))
 
 model = NeuralNet().to(device)
-loss_fn_subject = nn.CrossEntropyLoss()
+loss_fn_subject = nn.CrossEntropyLoss() # loss functions
 loss_fn_finger = nn.CrossEntropyLoss()
 loss_fn_hand = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001)
@@ -126,7 +128,7 @@ for epoch in range(num_epochs):
 
         subject_out, finger_out, hand_out = model(inputs)
 
-        loss_subject = loss_fn_subject(subject_out, subjects)
+        loss_subject = loss_fn_subject(subject_out, subjects)   # calculate loss for each metric
         loss_finger = loss_fn_finger(finger_out, fingers)
         loss_hand = loss_fn_hand(hand_out, hands)
         loss = loss_subject + loss_finger + loss_hand
@@ -134,7 +136,8 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        subject_acc = calculate_accuracy(subject_out, subjects)
+        # calculate accuracy for each metric
+        subject_acc = calculate_accuracy(subject_out, subjects) 
         finger_acc = finger_calculate_accuracy(finger_out, fingers)
         hand_acc = calculate_accuracy(hand_out, hands)
 
@@ -143,7 +146,9 @@ for epoch in range(num_epochs):
         total_finger_acc += finger_acc
         total_hand_acc += hand_acc
 
+    # get average loss across all of the batches in the epoch
     avg_loss = total_loss / len(train_loader)
+    # average accuracy across all of the batches in the epoch
     avg_subject_acc = total_subject_acc / len(train_loader)
     avg_finger_acc = total_finger_acc / len(train_loader)
     avg_hand_acc = total_hand_acc / len(train_loader)
