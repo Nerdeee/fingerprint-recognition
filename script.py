@@ -57,11 +57,11 @@ test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 class NeuralNet(nn.Module):
     def __init__(self):
         super(NeuralNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 512, kernel_size=2, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(512, 256, kernel_size=2, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(256, 128, kernel_size=2, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(1, 128, kernel_size=2, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(128, 64, kernel_size=2, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(64, 32, kernel_size=2, stride=1, padding=1)
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        self.fc2 = nn.Linear(1179648, 1024)
+        self.fc2 = nn.Linear(294912, 1024)
 
         # Separate output layers
         self.subject_output = nn.Linear(1024, 500)  # 500 subjects
@@ -116,7 +116,7 @@ model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
 loss_fn_finger = nn.CrossEntropyLoss()  # If finger is multi-class
 loss_fn_hand = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.0001)
+optimizer = optim.SGD(model.parameters(), lr=0.001)
 
 # Training Loop
 num_epochs = 50
@@ -171,10 +171,10 @@ for epoch in range(num_epochs):
           f"Hand Accuracy: {avg_hand_acc*100:.2f}%")
 
     # Tensorboard logging
-    writer.add_scalar('Loss/Total', avg_loss, epoch)
-    writer.add_scalar('Accuracy/Subject', avg_subject_acc, epoch)
-    writer.add_scalar('Accuracy/Finger', avg_finger_acc, epoch)
-    writer.add_scalar('Accuracy/Hand', avg_hand_acc, epoch)
+    writer.add_scalar('Total Loss / Epochs', avg_loss, epoch)
+    writer.add_scalar('Subject Accuracy / Epochs', avg_subject_acc, epoch)
+    writer.add_scalar('Finger Accuracy / Epochs', avg_finger_acc, epoch)
+    writer.add_scalar('Hand Accuracy / Epochs', avg_hand_acc, epoch)
 
 writer.close()
 

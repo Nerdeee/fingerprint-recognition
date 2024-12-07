@@ -5,6 +5,7 @@ import random
 import pickle
 from collections import defaultdict
 import matplotlib.pyplot as plt
+from skimage.morphology import skeletonize
 
 def get_finger_info(filename):
     """Extract subject, hand, finger, and orientation from filename."""
@@ -35,29 +36,26 @@ def label_encode(subject, hand, finger):
 
 def transformImage(img):
     image = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
-    
-    # Normalize the image
-    normalized_image = image / 255.0
-    
+        
     # Resize the image to the desired size
-    resized_image = cv2.resize(normalized_image, (96, 96))
+    resized_image = cv2.resize(image, (96, 96))
     
     # Step 1: Histogram Equalization
-    equalized = cv2.equalizeHist((resized_image * 255).astype(np.uint8))
+    equalized = cv2.equalizeHist((resized_image).astype(np.uint8))
     
     # Step 2: Gaussian Blur (Optional for noise reduction)
-    blurred = cv2.GaussianBlur(equalized, (5, 5), 0)
+    blurred = cv2.GaussianBlur(equalized, (3, 3), 0)
     
     # Step 3: Adaptive Thresholding
     thresholded = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                        cv2.THRESH_BINARY, 11, 2)
+                                        cv2.THRESH_BINARY, 7, 2)
     
     # Step 4: Morphological Opening (Remove small noise)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     opened = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
     
     # Step 5: Skeletonization
-    def skeletonize(image):
+    """ def skeletonize(image):
         skeleton = np.zeros(image.shape, dtype=np.uint8)
         temp = np.copy(image)
         while True:
@@ -68,10 +66,12 @@ def transformImage(img):
             temp = eroded.copy()
             if cv2.countNonZero(temp) == 0:
                 break
-        return skeleton
+        return skeleton """
     
     skeletonized = skeletonize(opened)
+    #normalized = skeletonized / 255.0
 
+    #return normalized
     return skeletonized
 
 def process_dataset(root_dir):

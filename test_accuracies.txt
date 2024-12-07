@@ -4,3 +4,10 @@
 2024-12-04 18:26:30 - Subject Accuracy: 0.20%, Finger Accuracy: 20.00%, Hand Accuracy: 48.84%
 2024-12-04 20:18:14 - Subject Accuracy: 31.13%, Finger Accuracy: 39.37%, Hand Accuracy: 57.44%
 2024-12-04 21:34:08 - Subject Accuracy: 34.59%, Finger Accuracy: 40.29%, Hand Accuracy: 57.05%
+2024-12-05 20:19:11 - Subject Accuracy: 24.80%, Finger Accuracy: 38.06%, Hand Accuracy: 57.40%
+2024-12-05 20:55:47 - Subject Accuracy: 25.92%, Finger Accuracy: 37.94%, Hand Accuracy: 57.72%
+2024-12-05 22:04:54 - Subject Accuracy: 23.85%, Finger Accuracy: 38.38%, Hand Accuracy: 57.80%
+2024-12-05 22:48:46 - Subject Accuracy: 30.85%, Finger Accuracy: 39.05%, Hand Accuracy: 58.48%
+2024-12-05 23:26:11 - Subject Accuracy: 33.04%, Finger Accuracy: 39.65%, Hand Accuracy: 59.20%
+2024-12-06 12:13:13 - Subject Accuracy: 28.88%, Finger Accuracy: 38.28%, Hand Accuracy: 58.56%
+2024-12-06 17:03:21 - Subject Accuracy: 34.91%, Finger Accuracy: 42.12%, Hand Accuracy: 59.39%
