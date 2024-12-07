@@ -16,7 +16,6 @@ device = torch.device("cuda")
 
 writer = SummaryWriter()
 
-# Load data
 with open("X_train.pickle", "rb") as f:
     X_train = pickle.load(f)
 
@@ -29,31 +28,30 @@ with open("X_test.pickle", "rb") as f:
 with open("Y_test.pickle", "rb") as f:
     Y_test = pickle.load(f)
 
-# Convert to torch tensors
+# convert to torch tensors
 X_train = torch.tensor(np.array(X_train), dtype=torch.float32)
 Y_train = torch.tensor(np.array(Y_train), dtype=torch.long)
 
 X_test = torch.tensor(np.array(X_test), dtype=torch.float32)
 Y_test = torch.tensor(np.array(Y_test), dtype=torch.long)
 
-# Unsqueeze to add a channel dimension (assuming grayscale input)
-X_train = X_train.unsqueeze(1)  # Shape: (N, 1, H, W)
-X_test = X_test.unsqueeze(1)    # Shape: (N, 1, H, W)
+# unsqueezes to add a channel dimension for greyscale images
+X_train = X_train.unsqueeze(1)
+X_test = X_test.unsqueeze(1)
 
-# Separate targets (subject, finger, hand)
+# separates targets (subject, finger, hand)
 Y_subject = Y_train[:, 0].long()
-Y_finger = Y_train[:, 1:6].float()  # One-hot encoded or regression
+Y_finger = Y_train[:, 1:6].float()
 Y_hand = Y_train[:, 6].long()
 
-# Dataset and DataLoader
+# loads dataset and creates dataloader
 train_dataset = TensorDataset(X_train, Y_subject, Y_finger, Y_hand)
 test_dataset = TensorDataset(X_test, Y_test[:, 0].long(), Y_test[:, 1:6].float(), Y_test[:, 6].long())
 
-# Define DataLoader
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)  # Batch size 32 is typical
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-# Neural Network Model
+# neural network model
 class NeuralNet(nn.Module):
     def __init__(self):
         super(NeuralNet, self).__init__()
@@ -63,7 +61,6 @@ class NeuralNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         self.fc2 = nn.Linear(294912, 1024)
 
-        # Separate output layers
         self.subject_output = nn.Linear(1024, 500)  # 500 subjects
         self.finger_output = nn.Linear(1024, 5)     # 5 fingers
         self.hand_output = nn.Linear(1024, 2)       # 2 hands (left, right)
@@ -76,45 +73,36 @@ class NeuralNet(nn.Module):
         x = torch.relu(self.conv3(x))
         x = self.maxpool(x)
 
-        # Flatten the output from conv layers
-        x = x.view(x.size(0), -1)  # Flatten to shape (batch_size, num_features)
+        x = x.view(x.size(0), -1)
         
         x = torch.relu(self.fc2(x))
 
-        # Separate outputs for subject, finger, and hand
         subject_out = self.subject_output(x)
         finger_out = self.finger_output(x)
         hand_out = self.hand_output(x)
         
         return subject_out, finger_out, hand_out
 
-# Accuracy Calculation
 def calculate_accuracy(y_pred, y_true):
     _, predicted = torch.max(y_pred, 1)
     correct = (predicted == y_true).sum().item()
     return correct / y_true.size(0)
 
 def finger_calculate_accuracy(y_pred, y_true):
-    # Get the predicted class indices
     _, predicted = torch.max(y_pred, 1)
-    # If the ground truth is one-hot encoded (y_true has shape [batch_size, 5]), 
-    # we need to extract the indices where the value is 1.
-    # In this case, we use torch.argmax to get the indices of the max value (one-hot labels).
-    true = torch.argmax(y_true, 1)  # Converts one-hot labels to class indices
-    correct = (predicted == true).sum().item()  # Count how many are correct
+    true = torch.argmax(y_true, 1)
+    correct = (predicted == true).sum().item()
     return correct / y_true.size(0)
 
 # Dummy Data Preparation
-# Assume we have preprocessed dataset with features (X) and labels split into subject, finger, hand
-#X_train = torch.rand(16000, 1, 103, 96)  # Example input: batch of 32 images, 1 channel, 28x28 resolution
-#Y_subject = torch.randint(0, 500, (16000,))  # Subject labels (500 classes)
-#Y_finger = torch.randint(0, 5, (16000,))     # Finger labels (5 classes)
-#Y_hand = torch.randint(0, 2, (16000,))       # Hand labels (binary)
+#X_train = torch.rand(16000, 1, 103, 96)
+#Y_subject = torch.randint(0, 500, (16000,))
+#Y_finger = torch.randint(0, 5, (16000,))
+#Y_hand = torch.randint(0, 2, (16000,))
 
-# Model, Loss, and Optimizer
 model = NeuralNet().to(device)
 loss_fn_subject = nn.CrossEntropyLoss()
-loss_fn_finger = nn.CrossEntropyLoss()  # If finger is multi-class
+loss_fn_finger = nn.CrossEntropyLoss()
 loss_fn_hand = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001)
 
@@ -135,25 +123,21 @@ for epoch in range(num_epochs):
         hands = hands.to(device)
         
         optimizer.zero_grad()
-        # Forward pass
+
         subject_out, finger_out, hand_out = model(inputs)
 
-        # Compute losses
         loss_subject = loss_fn_subject(subject_out, subjects)
         loss_finger = loss_fn_finger(finger_out, fingers)
         loss_hand = loss_fn_hand(hand_out, hands)
         loss = loss_subject + loss_finger + loss_hand
 
-        # Backward pass and optimization
         loss.backward()
         optimizer.step()
 
-        # Calculate accuracy for the batch
         subject_acc = calculate_accuracy(subject_out, subjects)
         finger_acc = finger_calculate_accuracy(finger_out, fingers)
         hand_acc = calculate_accuracy(hand_out, hands)
 
-        # Update statistics
         total_loss += loss.item()
         total_subject_acc += subject_acc
         total_finger_acc += finger_acc
@@ -170,7 +154,7 @@ for epoch in range(num_epochs):
           f"Finger Accuracy: {avg_finger_acc*100:.2f}%, "
           f"Hand Accuracy: {avg_hand_acc*100:.2f}%")
 
-    # Tensorboard logging
+    # tensorboard logging
     writer.add_scalar('Total Loss / Epochs', avg_loss, epoch)
     writer.add_scalar('Subject Accuracy / Epochs', avg_subject_acc, epoch)
     writer.add_scalar('Finger Accuracy / Epochs', avg_finger_acc, epoch)
@@ -178,7 +162,7 @@ for epoch in range(num_epochs):
 
 writer.close()
 
-# Evaluate on the test set
+# test loop
 model.eval()
 with torch.no_grad():
     total_subject_acc = 0
